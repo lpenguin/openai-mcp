@@ -65,11 +65,11 @@ Copy this configuration to your MCP settings file, typically located at:
 
 ### VS Code
 
-For VS Code with the Cline extension, add the configuration to `cline_mcp_settings.json`:
+VS Code has native MCP support. Add the configuration to your workspace or user settings:
 
-**Location**: `~/.vscode-server/data/User/globalStorage/saoudrizwan.claude-dev/settings/cline_mcp_settings.json`
+**Location**: `.vscode/mcp.json` (in your workspace root)
 
-Use the **Input** format in JSON:
+Configuration format:
 
 ```json
 {
