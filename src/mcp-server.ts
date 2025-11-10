@@ -74,8 +74,8 @@ class ImageGenerationServer {
               model: {
                 type: 'string',
                 description: 'The model to use for image generation',
-                enum: ['dall-e-3', 'dall-e-2'],
-                default: 'dall-e-3',
+                enum: ['gpt-image-1', 'dall-e-3', 'dall-e-2'],
+                default: 'gpt-image-1',
               },
               n: {
                 type: 'integer',
