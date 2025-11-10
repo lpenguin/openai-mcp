@@ -62,84 +62,161 @@ class ImageGenerationServer {
     this.server.setRequestHandler(ListToolsRequestSchema, async () => ({
       tools: [
         {
-          name: 'generate_image',
-          description: 'Generate an image using OpenAI\'s image generation models (DALL-E or GPT-Image) and save it to a file',
+          name: 'generate_image_gpt',
+          description: 'Generate an image using OpenAI\'s gpt-image-1 model and save it to a file. Supports transparency, custom output formats, and high-quality generation.',
           inputSchema: {
             type: 'object',
             properties: {
               prompt: {
                 type: 'string',
-                description: 'A text description of the desired image. Max length: 32000 chars (gpt-image-1), 4000 chars (dall-e-3), 1000 chars (dall-e-2)',
+                description: 'A text description of the desired image (max 32000 characters)',
               },
               output: {
                 type: 'string',
                 description: 'File path where the generated image should be saved (e.g., /path/to/image.png)',
               },
-              model: {
-                type: 'string',
-                description: 'The model to use for image generation',
-                enum: ['gpt-image-1', 'dall-e-3', 'dall-e-2'],
-                default: 'dall-e-2',
-              },
-              // Common parameters
               n: {
                 type: 'integer',
-                description: 'Number of images to generate (1-10 for dall-e-2/gpt-image-1, only 1 for dall-e-3)',
+                description: 'Number of images to generate (1-10)',
                 minimum: 1,
                 maximum: 10,
                 default: 1,
               },
               size: {
                 type: 'string',
-                description: 'Size: gpt-image-1(1024x1024,1536x1024,1024x1536,auto), dall-e-3(1024x1024,1792x1024,1024x1792), dall-e-2(256x256,512x512,1024x1024)',
+                description: 'Size of the generated image',
+                enum: ['1024x1024', '1536x1024', '1024x1536', 'auto'],
+                default: 'auto',
               },
               quality: {
                 type: 'string',
-                description: 'Quality: gpt-image-1(low,medium,high,auto), dall-e-3(standard,hd)',
+                description: 'Quality of the generated image',
+                enum: ['low', 'medium', 'high', 'auto'],
+                default: 'auto',
               },
-              // dall-e-3 specific
-              style: {
-                type: 'string',
-                description: 'Style for dall-e-3 only: vivid or natural',
-                enum: ['vivid', 'natural'],
-              },
-              // dall-e-2 and dall-e-3 specific
-              response_format: {
-                type: 'string',
-                description: 'Response format for dall-e-2/dall-e-3 only (not supported by gpt-image-1)',
-                enum: ['url', 'b64_json'],
-              },
-              // gpt-image-1 specific parameters
               background: {
                 type: 'string',
-                description: 'Background transparency for gpt-image-1 only',
+                description: 'Background transparency setting',
                 enum: ['transparent', 'opaque', 'auto'],
+                default: 'auto',
               },
               moderation: {
                 type: 'string',
-                description: 'Content moderation level for gpt-image-1 only',
+                description: 'Content moderation level',
                 enum: ['low', 'auto'],
+                default: 'auto',
               },
               output_compression: {
                 type: 'integer',
-                description: 'Compression level (0-100) for gpt-image-1 with webp/jpeg format',
+                description: 'Compression level (0-100) for webp/jpeg formats',
                 minimum: 0,
                 maximum: 100,
+                default: 100,
               },
               output_format: {
                 type: 'string',
-                description: 'Output format for gpt-image-1 only',
+                description: 'Output image format',
                 enum: ['png', 'jpeg', 'webp'],
+                default: 'png',
               },
               partial_images: {
                 type: 'integer',
-                description: 'Number of partial images (0-3) for streaming with gpt-image-1',
+                description: 'Number of partial images (0-3) for streaming',
                 minimum: 0,
                 maximum: 3,
+                default: 0,
               },
               stream: {
                 type: 'boolean',
-                description: 'Enable streaming mode for gpt-image-1 only',
+                description: 'Enable streaming mode',
+                default: false,
+              },
+              user: {
+                type: 'string',
+                description: 'Unique identifier for your end-user (optional)',
+              },
+            },
+            required: ['prompt', 'output'],
+          },
+        },
+        {
+          name: 'generate_image_dalle3',
+          description: 'Generate an image using OpenAI\'s DALL-E 3 model and save it to a file. Best quality and most advanced model with style control.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              prompt: {
+                type: 'string',
+                description: 'A text description of the desired image (max 4000 characters)',
+              },
+              output: {
+                type: 'string',
+                description: 'File path where the generated image should be saved (e.g., /path/to/image.png)',
+              },
+              size: {
+                type: 'string',
+                description: 'Size of the generated image',
+                enum: ['1024x1024', '1792x1024', '1024x1792'],
+                default: '1024x1024',
+              },
+              quality: {
+                type: 'string',
+                description: 'Quality of the generated image',
+                enum: ['standard', 'hd'],
+                default: 'standard',
+              },
+              style: {
+                type: 'string',
+                description: 'Style of the generated image. Vivid creates hyper-real and dramatic images. Natural creates more natural, less hyper-real images.',
+                enum: ['vivid', 'natural'],
+                default: 'vivid',
+              },
+              response_format: {
+                type: 'string',
+                description: 'Format in which the image is returned',
+                enum: ['url', 'b64_json'],
+                default: 'url',
+              },
+              user: {
+                type: 'string',
+                description: 'Unique identifier for your end-user (optional)',
+              },
+            },
+            required: ['prompt', 'output'],
+          },
+        },
+        {
+          name: 'generate_image_dalle2',
+          description: 'Generate an image using OpenAI\'s DALL-E 2 model and save it to a file. Fast and cost-effective option.',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              prompt: {
+                type: 'string',
+                description: 'A text description of the desired image (max 1000 characters)',
+              },
+              output: {
+                type: 'string',
+                description: 'File path where the generated image should be saved (e.g., /path/to/image.png)',
+              },
+              n: {
+                type: 'integer',
+                description: 'Number of images to generate (1-10)',
+                minimum: 1,
+                maximum: 10,
+                default: 1,
+              },
+              size: {
+                type: 'string',
+                description: 'Size of the generated image',
+                enum: ['256x256', '512x512', '1024x1024'],
+                default: '1024x1024',
+              },
+              response_format: {
+                type: 'string',
+                description: 'Format in which the image is returned',
+                enum: ['url', 'b64_json'],
+                default: 'url',
               },
               user: {
                 type: 'string',
@@ -153,120 +230,183 @@ class ImageGenerationServer {
     }));
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
-      if (request.params.name !== 'generate_image') {
+      const toolName = request.params.name;
+      
+      // Route to appropriate handler based on tool name
+      if (toolName === 'generate_image_gpt') {
+        return this.handleGptImageGeneration(request.params.arguments);
+      } else if (toolName === 'generate_image_dalle3') {
+        return this.handleDalle3Generation(request.params.arguments);
+      } else if (toolName === 'generate_image_dalle2') {
+        return this.handleDalle2Generation(request.params.arguments);
+      } else {
         throw new McpError(
           ErrorCode.MethodNotFound,
-          `Unknown tool: ${request.params.name}`
+          `Unknown tool: ${toolName}`
         );
-      }
-
-      const args = request.params.arguments as {
-        prompt: string;
-        output: string;
-        model?: 'gpt-image-1' | 'dall-e-3' | 'dall-e-2';
-        n?: number;
-        size?: string;
-        quality?: string;
-        style?: 'vivid' | 'natural';
-        response_format?: 'url' | 'b64_json';
-        // gpt-image-1 specific
-        background?: 'transparent' | 'opaque' | 'auto';
-        moderation?: 'low' | 'auto';
-        output_compression?: number;
-        output_format?: 'png' | 'jpeg' | 'webp';
-        partial_images?: number;
-        stream?: boolean;
-        user?: string;
-      };
-      
-      // Validate required parameters
-      if (!args.prompt) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          'Prompt is required'
-        );
-      }
-      
-      if (!args.output) {
-        throw new McpError(
-          ErrorCode.InvalidParams,
-          'Output file path is required'
-        );
-      }
-
-      try {
-        const model = args.model || 'dall-e-2';
-        
-        // Build options based on model type
-        let options: ImageGenerationOptions;
-        
-        if (model === 'gpt-image-1') {
-          options = {
-            model: 'gpt-image-1',
-            n: args.n,
-            size: args.size as any,
-            quality: args.quality as any,
-            background: args.background,
-            moderation: args.moderation,
-            output_compression: args.output_compression,
-            output_format: args.output_format,
-            partial_images: args.partial_images,
-            stream: args.stream,
-            user: args.user,
-          };
-        } else if (model === 'dall-e-3') {
-          options = {
-            model: 'dall-e-3',
-            n: 1, // dall-e-3 only supports n=1
-            size: args.size as any,
-            quality: args.quality as any,
-            style: args.style,
-            response_format: args.response_format,
-            user: args.user,
-          };
-        } else {
-          options = {
-            model: 'dall-e-2',
-            n: args.n,
-            size: args.size as any,
-            response_format: args.response_format,
-            user: args.user,
-          };
-        }
-
-        console.error('Sending request to OpenAI with options:', JSON.stringify(options, null, 2));
-        console.error('Prompt:', args.prompt);
-        console.error('Output:', args.output);
-        
-        const result = await this.openAiProvider.generateImage(args.prompt, args.output, options);
-        
-        // Format the response for MCP
-        return {
-          content: [
-            {
-              type: 'text',
-              text: JSON.stringify({
-                success: true,
-                savedFiles: result.savedFiles,
-                response: result.response,
-              }, null, 2),
-            },
-          ],
-        };
-      } catch (error) {
-        console.error('Error generating image:', error);
-        
-        return {
-          content: [
-            {
-              type: 'text',
-              text: `Error generating image: ${(error as Error).message || 'Unknown error'}`,
-            },
-          ],
-          isError: true,
-        };
       }
     });
+  }
+
+  private async handleGptImageGeneration(args: any) {
+    // Validate required parameters
+    if (!args.prompt) {
+      throw new McpError(ErrorCode.InvalidParams, 'Prompt is required');
+    }
+    if (!args.output) {
+      throw new McpError(ErrorCode.InvalidParams, 'Output file path is required');
+    }
+
+    try {
+      const options: ImageGenerationOptions = {
+        model: 'gpt-image-1',
+        n: args.n,
+        size: args.size as any,
+        quality: args.quality as any,
+        background: args.background,
+        moderation: args.moderation,
+        output_compression: args.output_compression,
+        output_format: args.output_format,
+        partial_images: args.partial_images,
+        stream: args.stream,
+        user: args.user,
+      };
+
+      console.error('Sending gpt-image-1 request to OpenAI');
+      console.error('Prompt:', args.prompt);
+      console.error('Output:', args.output);
+      
+      const result = await this.openAiProvider.generateImage(args.prompt, args.output, options);
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              model: 'gpt-image-1',
+              savedFiles: result.savedFiles,
+              response: result.response,
+            }, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error('Error generating image:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error generating image: ${(error as Error).message || 'Unknown error'}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+
+  private async handleDalle3Generation(args: any) {
+    // Validate required parameters
+    if (!args.prompt) {
+      throw new McpError(ErrorCode.InvalidParams, 'Prompt is required');
+    }
+    if (!args.output) {
+      throw new McpError(ErrorCode.InvalidParams, 'Output file path is required');
+    }
+
+    try {
+      const options: ImageGenerationOptions = {
+        model: 'dall-e-3',
+        n: 1, // dall-e-3 only supports n=1
+        size: args.size as any,
+        quality: args.quality as any,
+        style: args.style,
+        response_format: args.response_format,
+        user: args.user,
+      };
+
+      console.error('Sending dall-e-3 request to OpenAI');
+      console.error('Prompt:', args.prompt);
+      console.error('Output:', args.output);
+      
+      const result = await this.openAiProvider.generateImage(args.prompt, args.output, options);
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              model: 'dall-e-3',
+              savedFiles: result.savedFiles,
+              response: result.response,
+            }, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error('Error generating image:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error generating image: ${(error as Error).message || 'Unknown error'}`,
+          },
+        ],
+        isError: true,
+      };
+    }
+  }
+
+  private async handleDalle2Generation(args: any) {
+    // Validate required parameters
+    if (!args.prompt) {
+      throw new McpError(ErrorCode.InvalidParams, 'Prompt is required');
+    }
+    if (!args.output) {
+      throw new McpError(ErrorCode.InvalidParams, 'Output file path is required');
+    }
+
+    try {
+      const options: ImageGenerationOptions = {
+        model: 'dall-e-2',
+        n: args.n,
+        size: args.size as any,
+        response_format: args.response_format,
+        user: args.user,
+      };
+
+      console.error('Sending dall-e-2 request to OpenAI');
+      console.error('Prompt:', args.prompt);
+      console.error('Output:', args.output);
+      
+      const result = await this.openAiProvider.generateImage(args.prompt, args.output, options);
+      
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              success: true,
+              model: 'dall-e-2',
+              savedFiles: result.savedFiles,
+              response: result.response,
+            }, null, 2),
+          },
+        ],
+      };
+    } catch (error) {
+      console.error('Error generating image:', error);
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `Error generating image: ${(error as Error).message || 'Unknown error'}`,
+          },
+        ],
+        isError: true,
+      };
+    }
   }
 
   async run(): Promise<void> {
