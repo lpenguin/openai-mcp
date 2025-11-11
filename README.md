@@ -32,13 +32,6 @@ For development with automatic compilation:
 npm run dev
 ```
 
-## Testing
-
-Run the test client:
-```
-npm test
-```
-
 ## MCP Server Configuration
 
 To use this as an MCP server with Claude, you need to add it to your MCP settings configuration file. The `mcp-config.json` file in this repository provides a template:
