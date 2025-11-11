@@ -78,6 +78,9 @@ async function sendMCPRequest(
 async function runTests(): Promise<void> {
   console.log("🚀 Starting integration tests...\n");
 
+  let failedTests = 0;
+  let passedTests = 0;
+
   // Create test output directory
   console.log("📁 Creating test output directory...");
   try {
@@ -125,8 +128,14 @@ async function runTests(): Promise<void> {
       },
     });
     const initResponse = await sendMCPRequest(child, initRequest);
-    console.log("✅ Initialize successful");
-    console.log(`   Server: ${JSON.stringify((initResponse.result as { serverInfo?: { name?: string } })?.serverInfo?.name)}\n`);
+    if (initResponse.result) {
+      console.log("✅ Initialize successful");
+      console.log(`   Server: ${JSON.stringify((initResponse.result as { serverInfo?: { name?: string } })?.serverInfo?.name)}\n`);
+      passedTests++;
+    } else {
+      console.log("❌ Initialize failed\n");
+      failedTests++;
+    }
 
     // Test 2: List tools
     console.log("Test 2: List available tools");
@@ -135,17 +144,21 @@ async function runTests(): Promise<void> {
     const tools = (listToolsResponse.result as { tools?: Array<{ name: string }> })?.tools || [];
     console.log("✅ Tools list retrieved");
     console.log(`   Available tools: ${tools.map(t => t.name).join(', ')}\n`);
+    passedTests++;
 
     // Verify all expected tools are present
     const expectedTools = ['generate_image_gpt', 'generate_image_gpt_mini', 'generate_image_dalle3', 'generate_image_dalle2'];
     for (const expectedTool of expectedTools) {
       if (!tools.some(t => t.name === expectedTool)) {
+        console.log(`❌ Missing tool: ${expectedTool}\n`);
+        failedTests++;
         throw new Error(`${expectedTool} tool not found`);
       }
     }
     console.log("✅ All expected tools found\n");
+    passedTests++;
 
-    // Test 3: Call generate_image_gpt tool (will fail due to invalid API key, but tests the protocol)
+    // Test 3: Call generate_image_gpt tool
     console.log("Test 3: Call generate_image_gpt tool");
     const outputPath1 = join(TEST_OUTPUT_DIR, 'test-gpt-image-1.png');
     const generateGptRequest = createMCPRequest("tools/call", {
@@ -162,13 +175,15 @@ async function runTests(): Promise<void> {
     // With mock API, this should succeed
     if (generateGptResponse.error || 
         (generateGptResponse.result as { isError?: boolean })?.isError) {
-      console.log("⚠️  generate_image_gpt tool failed");
+      console.log("❌ generate_image_gpt tool failed");
       const content = (generateGptResponse.result as { content?: Array<{ text?: string }> })?.content;
       if (content && content[0]?.text) {
         console.log(`   Error: ${content[0].text.substring(0, 200)}\n`);
       }
+      failedTests++;
     } else {
       console.log("✅ generate_image_gpt tool called successfully\n");
+      passedTests++;
     }
 
     // Test 4: Call generate_image_gpt_mini tool
@@ -187,9 +202,11 @@ async function runTests(): Promise<void> {
     
     if (generateGptMiniResponse.error || 
         (generateGptMiniResponse.result as { isError?: boolean })?.isError) {
-      console.log("⚠️  generate_image_gpt_mini tool failed\n");
+      console.log("❌ generate_image_gpt_mini tool failed\n");
+      failedTests++;
     } else {
       console.log("✅ generate_image_gpt_mini tool called successfully\n");
+      passedTests++;
     }
 
     // Test 5: Call generate_image_dalle3 tool
@@ -208,9 +225,11 @@ async function runTests(): Promise<void> {
     
     if (generateDalle3Response.error || 
         (generateDalle3Response.result as { isError?: boolean })?.isError) {
-      console.log("⚠️  generate_image_dalle3 tool failed\n");
+      console.log("❌ generate_image_dalle3 tool failed\n");
+      failedTests++;
     } else {
       console.log("✅ generate_image_dalle3 tool called successfully\n");
+      passedTests++;
     }
 
     // Test 6: Call generate_image_dalle2 tool
@@ -228,9 +247,11 @@ async function runTests(): Promise<void> {
     
     if (generateDalle2Response.error || 
         (generateDalle2Response.result as { isError?: boolean })?.isError) {
-      console.log("⚠️  generate_image_dalle2 tool failed\n");
+      console.log("❌ generate_image_dalle2 tool failed\n");
+      failedTests++;
     } else {
       console.log("✅ generate_image_dalle2 tool called successfully\n");
+      passedTests++;
     }
 
     // Test 7: Test error handling with missing required parameters
@@ -246,11 +267,23 @@ async function runTests(): Promise<void> {
     if (invalidResponse.error || 
         (invalidResponse.result as { isError?: boolean })?.isError) {
       console.log("✅ Error handling works correctly for missing parameters\n");
+      passedTests++;
     } else {
-      console.log("⚠️  Expected error for missing parameters but got success\n");
+      console.log("❌ Expected error for missing parameters but got success\n");
+      failedTests++;
     }
 
-    console.log("🎉 All integration tests completed!");
+    console.log("\n" + "=".repeat(50));
+    console.log(`Test Results: ${passedTests} passed, ${failedTests} failed`);
+    console.log("=".repeat(50) + "\n");
+
+    if (failedTests > 0) {
+      console.log("❌ Some tests failed!");
+      child.kill();
+      process.exit(1);
+    }
+
+    console.log("🎉 All integration tests passed!");
     console.log("\nThe tests verify that:");
     console.log("  1. The MCP protocol works correctly");
     console.log("  2. All tools are registered and discoverable");
